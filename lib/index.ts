@@ -1,4 +1,8 @@
-import { CommonEngine, CommonEngineRenderOptions } from "@angular/ssr";
+import {
+  CommonEngine,
+  CommonEngineRenderOptions,
+  CommonEngineOptions,
+} from "@angular/ssr";
 import fp from "fastify-plugin";
 import type { FastifyInstance, FastifyRegister, FastifyReply } from "fastify";
 import fastifyStatic, { FastifyStaticOptions } from "@fastify/static";
@@ -6,7 +10,7 @@ import { REPLY, REPLY_RAW, REQUEST, REQUEST_RAW, RESPONSE } from "./tokens";
 import { StaticProvider } from "@angular/core";
 import { join } from "path";
 
-export type FastifyNgUniversalEngineOptions = Pick<
+export type FastifyNgUniversalEngineRenderOptions = Pick<
   CommonEngineRenderOptions,
   | "bootstrap"
   | "providers"
@@ -16,7 +20,8 @@ export type FastifyNgUniversalEngineOptions = Pick<
 >;
 
 export interface FastifyNgUniversalOptions {
-  engine: FastifyNgUniversalEngineOptions;
+  render: FastifyNgUniversalEngineRenderOptions;
+  engine: CommonEngineOptions;
   static?: FastifyStaticOptions;
   exposeError?: boolean;
   root: string;
@@ -51,7 +56,7 @@ const FastifyNgUniversal = fp(
       ...(options.static ?? {}),
     });
 
-    const engine = new CommonEngine(options.engine.bootstrap);
+    const engine = new CommonEngine(options.render);
 
     fastify.decorateRequest(
       "ngRender",
@@ -60,7 +65,7 @@ const FastifyNgUniversal = fp(
         override: Partial<CommonEngineRenderOptions> = {}
       ) {
         try {
-          if (!options.engine.bootstrap && !override.bootstrap) {
+          if (!options.render.bootstrap && !override.bootstrap) {
             throw new Error("You must pass in a NgModule to be bootstrapped");
           }
 
@@ -88,15 +93,15 @@ const FastifyNgUniversal = fp(
           ];
 
           const renderedHTML = await engine.render({
-            ...options.engine,
+            ...options.render,
             documentFilePath:
-              options.engine.documentFilePath ||
+              options.render.documentFilePath ||
               join(options.root, "index.html"),
-            inlineCriticalCss: options.engine.inlineCriticalCss ?? true,
+            inlineCriticalCss: options.render.inlineCriticalCss ?? true,
             url: `${this.protocol}://${this.hostname}${this.url}`,
             ...override,
             providers: [
-              ...(options.engine.providers ?? []),
+              ...(options.render.providers ?? []),
               ...(override.providers ?? []),
               commonProviders,
             ],
