@@ -1,4 +1,4 @@
-import { CommonEngine, RenderOptions } from "@nguniversal/common/engine";
+import { CommonEngine, CommonEngineRenderOptions } from "@angular/ssr";
 import fp from "fastify-plugin";
 import type { FastifyInstance, FastifyRegister, FastifyReply } from "fastify";
 import fastifyStatic, { FastifyStaticOptions } from "@fastify/static";
@@ -7,7 +7,7 @@ import { StaticProvider } from "@angular/core";
 import { join } from "path";
 
 export type FastifyNgUniversalEngineOptions = Pick<
-  RenderOptions,
+  CommonEngineRenderOptions,
   | "bootstrap"
   | "providers"
   | "publicPath"
@@ -24,7 +24,7 @@ export interface FastifyNgUniversalOptions {
 
 export type NgRenderFn = (
   reply: FastifyReply,
-  override?: Partial<RenderOptions>
+  override?: Partial<CommonEngineRenderOptions>
 ) => Promise<void>;
 
 declare module "fastify" {
@@ -51,16 +51,13 @@ const FastifyNgUniversal = fp(
       ...(options.static ?? {}),
     });
 
-    const engine = new CommonEngine(
-      options.engine.bootstrap,
-      options.engine.providers
-    );
+    const engine = new CommonEngine(options.engine.bootstrap);
 
     fastify.decorateRequest(
       "ngRender",
       async function fn(
         reply: FastifyReply,
-        override: Partial<RenderOptions> = {}
+        override: Partial<CommonEngineRenderOptions> = {}
       ) {
         try {
           if (!options.engine.bootstrap && !override.bootstrap) {
